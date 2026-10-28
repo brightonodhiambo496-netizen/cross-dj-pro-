@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080b12">
+<title>Cross DJ Pro</title>
+<style>
+:root {
+  --bg:#080b12; --panel:#121927; --cyan:#00e5ff;
+  --pink:#ff3d81; --text:#f4f7ff; --muted:#93a4bb;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:Arial,sans-serif; padding-bottom:75px;
+}
+header {
+  padding:18px 16px; display:flex; justify-content:space-between;
+  align-items:center; border-bottom:1px solid #263347;
+  background:#0c111c; position:sticky; top:0; z-index:5;
+}
+.logo { font-weight:900; font-size:20px; }
+.logo span { color:var(--cyan); }
+.status { font-size:11px; color:#4dffad; }
+nav {
+  display:flex; gap:8px; padding:12px; overflow:auto;
+}
+nav button,.btn {
+  background:#202b3d; color:white; border:1px solid #35445b;
+  border-radius:10px; padding:11px 14px; font-weight:bold;
+}
+nav button.active { background:var(--cyan); color:#001016; }
+main { padding:12px; max-width:800px; margin:auto; }
+h2 { font-size:16px; margin:8px 0 12px; }
+.decks { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.deck {
+  background:var(--panel); border:1px solid #29374d;
+  border-radius:16px; padding:12px; min-width:0;
+}
+.deck h2 { display:flex; justify-content:space-between; }
+.deck-a { color:var(--cyan); }
+.deck-b { color:var(--pink); }
+.disc {
+  width:min(100%,145px); aspect-ratio:1; border-radius:50%;
+  margin:12px auto; display:flex; align-items:center;
+  justify-content:center; background:
+  repeating-radial-gradient(circle,#171c29 0 4px,#30394a 5px 6px);
+  border:5px solid #080b12; box-shadow:0 0 0 2px #35445b;
+}
+.disc.playing { animation:spin 3s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.disc span {
+  background:#101827; border:3px solid var(--cyan);
+  width:42%; aspect-ratio:1; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:bold;
+}
+.deck-b .disc span { border-color:var(--pink); }
+.track {
+  font-size:12px; color:var(--muted); overflow-wrap:anywhere;
+  text-align:center; min-height:30px;
+}
+.controls { display:flex; justify-content:center; gap:7px; margin:12px 0; }
+.play {
+  background:var(--cyan); color:#001016; border:0;
+  border-radius:50%; width:48px; height:48px; font-size:19px;
+}
+.deck-b .play { background:var(--pink); }
+.small {
+  background:#263247; color:white; border:0;
+  padding:10px; border-radius:9px;
+}
+label { font-size:12px; color:var(--muted); display:block; margin:12px 0 6px; }
+input[type=range] { width:100%; accent-color:var(--cyan); }
+input[type=file] { width:100%; font-size:11px; margin-top:8px; }
+.panel {
+  background:var(--panel); border:1px solid #29374d;
+  border-radius:15px; padding:15px; margin-top:14px;
+}
+.mixer { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+input[type=range].cross { accent-color:var(--pink); }
+.row { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.action {
+  width:100%; margin-top:10px; padding:13px;
+  background:#202b3d; color:white; border:1px solid #35445b;
+  border-radius:10px; font-weight:bold;
+}
+.action.primary { background:var(--cyan); color:#001016; }
+.action.recording { background:#d52d53; }
+#chat {
+  height:150px; overflow:auto; background:#090e17;
+  padding:10px; border-radius:9px; font-size:13px;
+}
+.chatline { margin:7px 0; line-height:1.5; }
+input[type=text] {
+  width:100%; background:#090e17; color:white;
+  border:1px solid #35445b; padding:12px; border-radius:9px;
+}
+footer {
+  position:fixed; bottom:0; left:0; right:0;
+  text-align:center; background:#0c111c; color:var(--muted);
+  padding:12px; font-size:11px; border-top:1px solid #263347;
+}
+.hidden { display:none; }
+@media(max-width:360px) {
+  .decks { gap:6px; }
+  .deck { padding:8px; }
+  .small { padding:8px 5px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">CROSS <span>DJ PRO</span></div>
+  <div class="status">● READY</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('mix',this)">🎧 Mix</button>
+  <button onclick="showPage('library',this)">🎵 Library</button>
+  <button onclick="showPage('ai',this)">🤖 AI DJ</button>
+</nav>
+
+<main>
+<section id="mix">
+  <div class="decks">
+    <div class="deck deck-a">
+      <h2>DECK A <span>01</span></h2>
+      <div class="disc" id="discA"><span>A</span></div>
+      <div class="track" id="nameA">No track loaded</div>
+      <input type="file" accept="audio/*" onchange="loadTrack(event,'A')">
+      <div class="controls">
+        <button class="small" onclick="restartTrack('A')">↺</button>
+        <button class="play" id="playA" onclick="togglePlay('A')">▶</button>
+        <button class="small" onclick="stopTrack('A')">■</button>
+      </div>
+      <label>Tempo: <span id="tempoTextA">100%</span></label>
+      <input type="range" min="70" max="130" value="100"
+        oninput="setTempo('A',this.value)">
+      <label>Volume</label>
+      <input type="range" min="0" max="100" value="85"
+        oninput="setVolume('A',this.value)">
+    </div>
+
+    <div class="deck deck-b">
+      <h2>DECK B <span>02</span></h2>
+      <div class="disc" id="discB"><span>B</span></div>
+      <div class="track" id="nameB">No track loaded</div>
+      <input type="file" accept="audio/*" onchange="loadTrack(event,'B')">
+      <div class="controls">
+        <button class="small" onclick="restartTrack('B')">↺</button>
+        <button class="play" id="playB" onclick="togglePlay('B')">▶</button>
+        <button class="small" onclick="stopTrack('B')">■</button>
+      </div>
+      <label>Tempo: <span id="tempoTextB">100%</span></label>
+      <input type="range" min="70" max="130" value="100"
+        oninput="setTempo('B',this.value)">
+      <label>Volume</label>
+      <input type="range" min="0" max="100" value="85"
+        oninput="setVolume('B',this.value)">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>🎚️ MASTER MIXER</h2>
+    <label>Crossfader — A ◀ ▶ B</label>
+    <input class="cross" id="crossfade" type="range" min="0" max="100"
+      value="50" oninput="setCrossfade(this.value)">
+    <div class="row"><small>DECK A</small><small>DECK B</small></div>
+    <label>Master volume</label>
+    <input type="range" min="0" max="100" value="85"
+      oninput="masterVolume=Number(this.value)/100; updateAudio()">
+    <button class="action" onclick="toggleAutomix()" id="automix">
+      🔁 Start Automix
+    </button>
+    <button class="action" onclick="toggleRecording()" id="recordBtn">
+      ⏺ Start Recording
+    </button>
+    <div id="recordStatus" class="track">Recording is off</div>
+  </div>
+</section>
+
+<section id="library" class="hidden">
+  <div class="panel">
+    <h2>🎵 YOUR MUSIC LIBRARY</h2>
+    <p class="track">Load audio files into either deck. Your phone's file picker lets you choose music you have permission to use.</p>
+    <button class="action primary" onclick="document.getElementById('libraryFile').click()">
+      + Add music
+    </button>
+    <input id="libraryFile" type="file" accept="audio/*" multiple
+      class="hidden" onchange="addLibrary(event)">
+    <div id="libraryList"></div>
+  </div>
+</section>
+
+<section id="ai" class="hidden">
+  <div class="panel">
+    <h2>🤖 AI DJ ASSISTANT</h2>
+    <div id="chat">
+      <div class="chatline">Cross DJ: Hello! I can help you plan a mix, choose a transition, and understand DJ controls.</div>
+    </div>
+    <form onsubmit="askAI(event)">
+      <label for="aiInput">Ask your DJ assistant</label>
+      <input id="aiInput" type="text" placeholder="How do I mix two songs?">
+      <button class="action primary" type="submit">Send message</button>
+    </form>
+    <p class="track">This starter assistant uses built-in responses. Online AI requires a secure backend and an AI service connection.</p>
+  </div>
+</section>
+</main>
+
+<footer>Cross DJ Pro • Your music, your mix</footer>
+
+<script>
+const decks = {
+  A:{audio:new Audio(),url:null,tempo:100,volume:0.85},
+  B:{audio:new Audio(),url:null,tempo:100,volume:0.85}
+};
+let masterVolume=0.85;
+let recording=false, recorder=null, recordChunks=[];
+let automix=false, automixTimer=null;
+let library=[];
+let audioContext=null, mediaDest=null, sourceNodes={};
+
+function initAudio() {
+  if(audioContext) return;
+  const AC=window.AudioContext||window.webkitAudioContext;
+  if(!AC) return;
+  audioContext=new AC();
+  mediaDest=audioContext.createMediaStreamDestination();
+  ['A','B'].forEach(k=>{
+    const source=audioContext.createMediaElementSource(decks[k].audio);
+    const gain=audioContext.createGain();
+    source.connect(gain);
+    gain.connect(audioContext.destination);
+    gain.connect(mediaDest);
+    sourceNodes[k]={gain};
+  });
+  updateAudio();
+}
+
+function updateAudio() {
+  if(!audioContext) return;
+  if(audioContext.state==='suspended') audioContext.resume();
+  ['A','B'].forEach(k=>{
+    const pan=Number(document.getElementById('crossfade').value)/100;
+    const balance=k==='A'?Math.cos(pan*Math.PI/2):Math.sin(pan*Math.PI/2);
+    sourceNodes[k].gain.gain.value=decks[k].volume*masterVolume*balance;
+  });
+}
+
+function loadTrack(event,k) {
+  const file=event.target.files[0];
+  if(!file) return;
+  if(decks[k].url) URL.revokeObjectURL(decks[k].url);
+  decks[k].url=URL.createObjectURL(file);
+  decks[k].audio.src=decks[k].url;
+  decks[k].audio.load();
+  document.getElementById('name'+k).textContent=file.name;
+  decks[k].audio.onended=()=>{
+    document.getElementById('play'+k).textContent='▶';
+    document.getElementById('disc'+k).classList.remove('playing');
+  };
+  initAudio();
+  document.getElementById('play'+k).textContent='▶';
+}
+
+async function togglePlay(k) {
+  const d=decks[k];
+  if(!d.audio.src) { alert('Load a music track first.'); return; }
+  initAudio();
+  if(audioContext && audioContext.state==='suspended') await audioContext.resume();
+  if(d.audio.paused) {
+    try {
+      await d.audio.play();
+      document.getElementById('play'+k).textContent='Ⅱ';
+      document.getElementById('disc'+k).classList.add('playing');
+    } catch(e) { alert('Could not play this file. Try another audio file.'); }
+  } else {
+    d.audio.pause();
+    document.getElementById('play'+k).textContent='▶';
+    document.getElementById('disc'+k).classList.remove('playing');
+  }
+}
+
+function stopTrack(k) {
+  decks[k].audio.pause();
+  decks[k].audio.currentTime=0;
+  document.getElementById('play'+k).textContent='▶';
+  document.getElementById('disc'+k).classList.remove('playing');
+}
+
+function restartTrack(k) {
+  if(!decks[k].audio.src) return;
+  decks[k].audio.currentTime=0;
+  decks[k].audio.play().then(()=>{
+    document.getElementById('play'+k).textContent='Ⅱ';
+    document.getElementById('disc'+k).classList.add('playing');
+  }).catch(()=>{});
+}
+
+function setTempo(k,v) {
+  decks[k].tempo=Number(v);
+  decks[k].audio.playbackRate=Number(v)/100;
+  document.getElementById('tempoText'+k).textContent=v+'%';
+}
+
+function setVolume(k,v) {
+  decks[k].volume=Number(v)/100;
+  updateAudio();
+}
+
+function setCrossfade(v) { updateAudio(); }
+
+function showPage(id,btn) {
+  ['mix','library','ai'].forEach(p=>
+    document.getElementById(p).classList.toggle('hidden',p!==id)
+  );
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function addLibrary(event) {
+  for(const file of event.target.files) {
+    library.push(file);
+  }
+  renderLibrary();
+}
+
+function renderLibrary() {
+  const list=document.getElementById('libraryList');
+  list.innerHTML='';
+  library.forEach((file,i)=>{
+    const row=document.createElement('div');
+    row.className='panel';
+    const title=document.createElement('div');
+    title.textContent=file.name;
+    const a=document.createElement('button');
+    a.className='action';
+    a.textContent='Load to Deck A';
+    a.onclick=()=>loadLibraryTrack(i,'A');
+    const b=document.createElement('button');
+    b.className='action';
+    b.textContent='Load to Deck B';
+    b.onclick=()=>loadLibraryTrack(i,'B');
+    row.append(title,a,b);
+    list.appendChild(row);
+  });
+}
+
+function loadLibraryTrack(i,k) {
+  const file=library[i];
+  if(decks[k].url) URL.revokeObjectURL(decks[k].url);
+  decks[k].url=URL.createObjectURL(file);
+  decks[k].audio.src=decks[k].url;
+  decks[k].audio.load();
+  document.getElementById('name'+k).textContent=file.name;
+  initAudio();
+  showPage('mix',document.querySelector('nav button'));
+}
+
+function toggleAutomix() {
+  automix=!automix;
+  const btn=document.getElementById('automix');
+  btn.textContent=automix?'⏹ Stop Automix':'🔁 Start Automix';
+  if(automix) {
+    automixTimer=setInterval(()=>{
+      if(!automix) return;
+      const a=decks.A.audio,b=decks.B.audio;
+      if(a.src && !a.paused && a.duration-a.currentTime<12 && b.src && b.paused) {
+        b.currentTime=0;
+        b.play().then(()=>{
+          document.getElementById('playB').textContent='Ⅱ';
+          document.getElementById('discB').classList.add('playing');
+        }).catch(()=>{});
+      }
+      if(a.src && !a.paused && a.duration-a.currentTime<6) {
+        const x=document.getElementById('crossfade');
+        x.value=Math.min(100,Number(x.value)+2);
+        updateAudio();
+      }
+      if(a.ended && b.src && b.paused) togglePlay('B');
+    },1000);
+  } else {
+    clearInterval(automixTimer);
+  }
+}
+
+async function toggleRecording() {
+  const btn=document.getElementById('recordBtn');
+  const status=document.getElementById('recordStatus');
+  if(!recording) {
+    initAudio();
+    if(!mediaDest) {
+      status.textContent='Audio recording is not supported in this browser.';
+      return;
+    }
+    try {
+      recordChunks=[];
+      const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4']
+        .find(t=>MediaRecorder.isTypeSupported(t));
+      recorder=new MediaRecorder(mediaDest.stream,mime?{mimeType:mime}:{});
+      recorder.ondataavailable=e=>{
+        if(e.data.size) recordChunks.push(e.data);
+      };
+      recorder.onstop=()=>{
+        const blob=new Blob(recordChunks,{type:recorder.mimeType||'audio/webm'});
+        const url=URL.createObjectURL(blob);
+        const link=document.createElement('a');
+        link.href=url;
+        link.download='cross-dj-mix.webm';
+        link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        status.textContent='Recording saved to your downloads.';
+      };
+      recorder.start();
+      recording=true;
+      btn.textContent='⏹ Stop & Save Recording';
+      btn.classList.add('recording');
+      status.textContent='● Recording mix...';
+    } catch(e) {
+      status.textContent='Recording failed. Try another browser.';
+    }
+  } else {
+    recorder.stop();
+    recording=false;
+    btn.textContent='⏺ Start Recording';
+    btn.classList.remove('recording');
+  }
+}
+
+function askAI(event) {
+  event.preventDefault();
+  const input=document.getElementById('aiInput');
+  const question=input.value.trim();
+  if(!question) return;
+  const chat=document.getElementById('chat');
+  const user=document.createElement('div');
+  user.className='chatline';
+  user.textContent='You: '+question;
+  chat.appendChild(user);
+  const answer=document.createElement('div');
+  answer.className='chatline';
+  const q=question.toLowerCase();
+  if(q.includes('beat')||q.includes('tempo')||q.includes('bpm')) {
+    answer.textContent='Cross DJ: Match the tracks’ tempos, listen to their beats, and adjust the tempo sliders gradually.';
+  } else if(q.includes('crossfade')||q.includes('transition')) {
+    answer.textContent='Cross DJ: Start the incoming track, align the beats, then gradually move the crossfader toward the incoming deck.';
+  } else if(q.includes('record')) {
+    answer.textContent='Cross DJ: Load your tracks and tap Start Recording. When finished, tap Stop & Save Recording.';
+  } else {
+    answer.textContent='Cross DJ: Try matching tempos, aligning beats, and slowly blending the two decks. This starter assistant works offline with preset guidance.';
+  }
+  chat.appendChild(answer);
+  chat.scrollTop=chat.scrollHeight;
+  input.value='';
+}
+
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden && audioContext && audioContext.state==='suspended') {
+    audioContext.resume().catch(()=>{});
+  }
+});
+</script>
+</body>
+</html>
